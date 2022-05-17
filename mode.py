@@ -21,7 +21,7 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 def forward(x, params):
-    "forward function"
+    ''' forward function '''
     cache = {'a0': x}
     length = len(params) // 2
 
@@ -39,7 +39,33 @@ def forward(x, params):
         cache['a' + str(l)] = a
 
     return a, cache
+
+def backward(outputs, labels, cache, params):
+    ''' backward function '''
+    gradient = {}
+    length = len(cache) // 2
+    
+    da = (outputs - labels) / labels.shape[0]
+    
+    for l in range(length, 0, -1):
+        # backward
+        prev_a = cache['a' + str(l-1)]
+        z = cache['z' + str(l)]
+        W = params['W' + str(l)]
         
+        db = da * sigmoid(z)
+        dW = np.outer(db, prev_a)
+        da = W.T @ db
+        
+        gradient['dW' + str(l)] = dW
+        gradient['db' + str(l)] = db
+    
+    return gradient
+        
+def update(param, gradient, alpha, _size):
+    length = len(param) // 2
+    return
+
 
 def train():
     dataset = load_dataset()
@@ -52,8 +78,11 @@ def train():
 
     epochs = 30
     lr = 1e-2
-
-    layers = [dataset.size(0), 3, 2]
+    alpha = 1e-3
+    
+    
+    
+    layers = [dataset.size(1), 3, 2]
     params = initialize_params(layers)
 
     for epoch in range(epochs):
@@ -61,4 +90,6 @@ def train():
         for data, labels in data_loader:
             data = data.numpy()
             labels = labels.numpy()
-            outputs, cache = forward(data, _params)
+            outputs, cache = forward(data, params)
+            gradient = backward(outputs, labels, cache, params)
+            _params = update(_params, gradient, alpha, dataset.size(1))
