@@ -42,5 +42,6 @@ class load_dataset(Dataset):
 
         return torch.tensor(arr), torch.tensor(label)
 
-
+    def size(self, idx):
+        return self._arrs.shape[idx]
     
