@@ -1,24 +1,68 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 
-class simpleModel(nn.Module):
-    def __init__(self, in_size, out_size):
-        super(simpleModel, self).__init__()
-        self.in_size = in_size
-        self.out_size = out_size
+def sigmoid(x):
+    return 1 / (1 + torch.exp(-x))
 
-        self.layer1 = nn.Sequential(
-            nn.Linear(self.in_size, 3),
-            nn.ReLU(),
-        )
-        self.clf = nn.Sequential(
-            nn.Linear(3, self.out_size),
-            nn.Sigmoid()
-        )
+def d_sigmoid(x):
+    return (np.exp(-1)) / ((np.exp(-x) + 1)**2)
 
-    def forward(self, x):
-        out = self.layer1(x)
-        out = self.clf(out)
-        return out
+def forward(x, params):
+    ''' forward function '''
+    cache = {'a0': x}
+    length = len(params) // 2
+
+    for l in range(1, length+1):
+        prev_a = cache['a' + str(l-1)]
+        W = params['W' + str(l)]
+        b = params['b' + str(l)]
+
+        # calculate z, a
+        z = torch.matmul(W, prev_a[:, :, None]).squeeze(-1) + b    # W @ prev_a + b
+        a = sigmoid(z)
+
+        # save to cache
+        cache['z' + str(l)] = z
+        cache['a' + str(l)] = a
+
+    return a, cache
+
+def backward(outputs, labels, cache, params):
+    ''' backward function '''
+    gradient = {}
+    length = len(cache) // 2
+
+    # criterion
+    # da = outputs - labels >> MSE Loss
+    da = F.binary_cross_entropy(outputs, labels.view(-1, 1))    # BCELoss
+    loss = da.clone()
+
+    for l in range(length, 0, -1):
+        # backward
+        prev_a = cache['a' + str(l-1)]
+        z = cache['z' + str(l)]
+        W = params['W' + str(l)]
+        
+        db = da * d_sigmoid(z)
+
+        # error spot
+        # dW = np.outer(db, prev_a)
+        dW = torch.einsum('bi,bj->bij', (db, prev_a))
+        da = torch.matmul(W.transpose(2, 1), db[:, :, None]).squeeze(-1)     # da = W.T @ db
+        
+        gradient['dW' + str(l)] = dW
+        gradient['db' + str(l)] = db
+    
+    return gradient, loss
+        
+def update(params, gradient, learning_rate, m):
+    length = len(params) // 2
+
+    for l in range(1, length + 1):
+        # gradient descent
+        params['W' + str(l)] -= learning_rate * gradient['dW' + str(l)]
+        params['b' + str(l)] -= learning_rate * gradient['db' + str(l)]
+    return params

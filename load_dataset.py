@@ -15,7 +15,6 @@ class load_dataset(Dataset):
         labels_df = df['label']
         df.drop(['label'], axis=1, inplace=True)
         
-    
         arrs = np.asarray(df)
         labels = np.asarray(labels_df)
 
@@ -38,7 +37,7 @@ class load_dataset(Dataset):
 
     def __getitem__(self, idx):
         arr = self._arrs[idx]
-        label = np.asarray(self._labels[idx])
+        label = self._labels[idx]
 
         return torch.tensor(arr), torch.tensor(label)
 
