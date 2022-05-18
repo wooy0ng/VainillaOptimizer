@@ -5,10 +5,10 @@ import numpy as np
 
 
 def sigmoid(x):
-    return 1 / (1 + torch.exp(-x))
+    return torch.sigmoid(x)
 
 def d_sigmoid(x):
-    return (np.exp(-1)) / ((np.exp(-x) + 1)**2)
+    return torch.sigmoid(x) * (1 - torch.sigmoid(x))
 
 def forward(x, params):
     ''' forward function '''
@@ -37,8 +37,7 @@ def backward(outputs, labels, cache, params):
 
     # criterion
     # da = outputs - labels >> MSE Loss
-    da = F.binary_cross_entropy(outputs, labels.view(-1, 1))    # BCELoss
-    loss = da.clone()
+    da = (outputs - labels.view(-1, 1)) / labels.size(0)
 
     for l in range(length, 0, -1):
         # backward
@@ -47,8 +46,8 @@ def backward(outputs, labels, cache, params):
         W = params['W' + str(l)]
         
         db = da * d_sigmoid(z)
+        
 
-        # error spot
         # dW = np.outer(db, prev_a)
         dW = torch.einsum('bi,bj->bij', (db, prev_a))
         da = torch.matmul(W.transpose(2, 1), db[:, :, None]).squeeze(-1)     # da = W.T @ db
@@ -56,13 +55,13 @@ def backward(outputs, labels, cache, params):
         gradient['dW' + str(l)] = dW
         gradient['db' + str(l)] = db
     
-    return gradient, loss
+    return gradient
         
 def update(params, gradient, learning_rate, m):
     length = len(params) // 2
 
     for l in range(1, length + 1):
         # gradient descent
-        params['W' + str(l)] -= learning_rate * gradient['dW' + str(l)]
-        params['b' + str(l)] -= learning_rate * gradient['db' + str(l)]
+        params['W' + str(l)] -= learning_rate * gradient['dW' + str(l)] / m 
+        params['b' + str(l)] -= learning_rate * gradient['db' + str(l)] / m
     return params

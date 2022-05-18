@@ -1,6 +1,14 @@
 from mode import *
+import argparse
 
+parser = argparse.ArgumentParser()
 
-if __name__ == "__main__":
-    train()
-    test()
+parser.add_argument('--mode', required=False, default='test')
+
+args = parser.parse_args()
+
+if args.mode == 'train':
+    train(args)
+    test(args)
+elif args.mode == 'test':
+    test(args)

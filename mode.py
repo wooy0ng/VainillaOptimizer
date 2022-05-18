@@ -20,8 +20,12 @@ def initialize_params(layers, batch):
 
     return params
 
+def criterion(outputs, labels):
+    loss = torch.mean((outputs - labels) ** 2) / 2
+    return loss
 
-def train():
+def train(args):
+    print("\n[train mode]")
     dataset = load_dataset()
 
     batch = 1
@@ -32,27 +36,34 @@ def train():
     )
 
     epochs = 50
-    lr = 2e-1
+    lr = 2.5e-2
     
     layers = [dataset.size(1), 3, 1]
     params = initialize_params(layers, batch)
 
     for epoch in range(epochs):
+        losses = 0.
         _params = params.copy()
         for data, labels in data_loader:
             data = data.to(dtype=torch.float32)
             labels = labels.to(dtype=torch.float32)
 
-            outputs, cache = forward(data, _params)
-            gradient, loss = backward(outputs, labels, cache, _params)
+            outputs, cache = forward(data, params)
+
+            loss = criterion(outputs, labels)
+            losses += loss.item()
+
+            gradient = backward(outputs, labels, cache, params)
             _params = update(_params, gradient, lr, data.size(0))
         params = _params    # update parameters
-        print(f"{epoch} epoch mean loss : {loss.item() / len(data_loader):.3f}")
-    pkl.dump(_params, open('parameters.pkl', 'wb+'))
+
+        print(f"{epoch} epoch mean loss : {losses / len(data_loader):.3f}")
+    pkl.dump(params, open('parameters.pkl', 'wb+'))
 
 
-def test():
-    dataset = load_dataset(mode='test')
+def test(args):
+    print("\n[test mode]")
+    dataset = load_dataset(mode=args.mode)
     
     batch = 1
     data_loader = DataLoader(
