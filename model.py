@@ -2,13 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-
-
-def sigmoid(x):
-    return torch.sigmoid(x)
-
-def d_sigmoid(x):
-    return torch.sigmoid(x) * (1 - torch.sigmoid(x))
+from utils import *
 
 def forward(x, params):
     ''' forward function '''
@@ -22,12 +16,16 @@ def forward(x, params):
 
         # calculate z, a
         z = torch.matmul(W, prev_a[:, :, None]).squeeze(-1) + b    # W @ prev_a + b
-        a = sigmoid(z)
+
+        # activate function
+        if l < length:
+            a = sigmoid(z)
+        else:
+            a = z
 
         # save to cache
         cache['z' + str(l)] = z
         cache['a' + str(l)] = a
-
     return a, cache
 
 def backward(outputs, labels, cache, params):
@@ -36,8 +34,9 @@ def backward(outputs, labels, cache, params):
     length = len(cache) // 2
 
     # criterion
-    # da = outputs - labels >> MSE Loss
-    da = (outputs - labels.view(-1, 1)) / labels.size(0)
+    # da = (outputs - labels) / labels.size(0)
+    # da = 
+    da = (softmax(outputs) - labels) / labels.size(0)
 
     for l in range(length, 0, -1):
         # backward
@@ -45,9 +44,11 @@ def backward(outputs, labels, cache, params):
         z = cache['z' + str(l)]
         W = params['W' + str(l)]
         
-        db = da * d_sigmoid(z)
+        if l >= length:
+            db = da * d_softmax(z)
+        else:
+            db = da * d_sigmoid(z)
         
-
         # dW = np.outer(db, prev_a)
         dW = torch.einsum('bi,bj->bij', (db, prev_a))
         da = torch.matmul(W.transpose(2, 1), db[:, :, None]).squeeze(-1)     # da = W.T @ db

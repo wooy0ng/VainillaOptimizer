@@ -21,7 +21,13 @@ def initialize_params(layers, batch):
     return params
 
 def criterion(outputs, labels):
+    '''
+    # MSELoss
     loss = torch.mean((outputs - labels) ** 2) / 2
+    '''
+    # cross Entropy loss
+    labels = torch.argmax(labels, dim=1)
+    loss = F.cross_entropy(outputs, labels)
     return loss
 
 def train(args):
@@ -38,7 +44,7 @@ def train(args):
     epochs = 50
     lr = 2.5e-2
     
-    layers = [dataset.size(1), 3, 1]
+    layers = [dataset.size(1), 3, 2]
     params = initialize_params(layers, batch)
 
     for epoch in range(epochs):
@@ -49,7 +55,6 @@ def train(args):
             labels = labels.to(dtype=torch.float32)
 
             outputs, cache = forward(data, params)
-
             loss = criterion(outputs, labels)
             losses += loss.item()
 
@@ -82,14 +87,24 @@ def test(args):
 
         outputs, _ = forward(data, params)
         
-        predicted = (outputs > 0.5).float()
-        predicted = predicted.squeeze().item()
-        labels = labels.squeeze().item()
+        predicted = torch.argmax(outputs, dim=1).item()
+        labels = torch.argmax(labels, dim=1).item()
         if predicted == labels:
             cnt += 1
         print(f"predicted : {predicted},\tactual : {labels}")
 
     print(f"accuracy : {(cnt / len(data_loader)) * 100.:.3f}%")
+
+    # visualized image
+    iterator = iter(data_loader)
+    inputs, labels = next(iterator)
+    
+    outputs, _ = forward(data, params)
+
+    predicted = torch.argmax(outputs, dim=1).item()
+    labels = torch.argmax(labels, dim=1).item()
+    inputs = inputs.view(-1, 4, 3)
+    visualized_image(inputs, title=f"predicted : {predicted}  actual : {labels}")
 
 
 

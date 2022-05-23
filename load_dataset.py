@@ -12,7 +12,8 @@ class load_dataset(Dataset):
         super(load_dataset, self).__init__()
 
         df = pd.read_excel('./dataset.xlsx')
-        labels_df = df['label']
+        labels_df = pd.get_dummies(df['label'])
+        
         df.drop(['label'], axis=1, inplace=True)
         
         arrs = np.asarray(df)
@@ -43,4 +44,5 @@ class load_dataset(Dataset):
 
     def size(self, idx):
         return self._arrs.shape[idx]
+
     
