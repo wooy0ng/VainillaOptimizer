@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
+import random
 
 from torch.utils.data import Dataset
 
@@ -19,19 +20,28 @@ class load_dataset(Dataset):
         arrs = np.asarray(df)
         labels = np.asarray(labels_df)
 
-        train_X, test_X, train_y, test_y = train_test_split(
+        random_state = 10
+        self.train_X, self.test_X, self.train_y, self.test_y = train_test_split(
             arrs, 
             labels, 
-            test_size=0.2, 
-            random_state=42
+            test_size=0.1, 
+            random_state=random_state
         )
 
         if mode == 'train':
-            self._arrs = train_X
-            self._labels = train_y
+            self._arrs = self.train_X
+            self._labels = self.train_y
         else:
-            self._arrs = test_X
-            self._labels = test_y
+            self._arrs = self.test_X
+            self._labels = self.test_y
+    
+    def __call__(self, mode):
+        if mode == 'train':
+            self._arrs = self.train_X
+            self._labels = self.train_y
+        else:
+            self._arrs = self.test_X
+            self._labels = self.test_y
     
     def __len__(self):
         return len(self._arrs)
@@ -39,7 +49,6 @@ class load_dataset(Dataset):
     def __getitem__(self, idx):
         arr = self._arrs[idx]
         label = self._labels[idx]
-
         return torch.tensor(arr), torch.tensor(label)
 
     def size(self, idx):

@@ -42,7 +42,7 @@ def train(args):
     )
 
     epochs = 50
-    lr = 2.5e-2
+    lr = 0.01
     
     layers = [dataset.size(1), 3, 2]
     params = initialize_params(layers, batch)
@@ -59,16 +59,26 @@ def train(args):
             losses += loss.item()
 
             gradient = backward(outputs, labels, cache, params)
-            _params = update(_params, gradient, lr, data.size(0))
+            _params = step(_params, gradient, lr, data.size(0))
         params = _params    # update parameters
 
         print(f"{epoch} epoch mean loss : {losses / len(data_loader):.3f}")
     pkl.dump(params, open('parameters.pkl', 'wb+'))
+    pkl.dump(dataset, open('dataset.pkl', 'wb+'))
 
 
 def test(args):
     print("\n[test mode]")
-    dataset = load_dataset(mode=args.mode)
+    args.mode = 'test'
+    # dataset = load_dataset(mode=args.mode)
+    
+    with open('parameters.pkl', 'rb+') as obj:
+        params = pkl.load(obj)
+    
+    with open('dataset.pkl', 'rb+') as obj:
+        dataset = pkl.load(obj)
+        dataset(args.mode)
+    
     
     batch = 1
     data_loader = DataLoader(
@@ -77,8 +87,7 @@ def test(args):
         shuffle=False,
     )
 
-    with open('parameters.pkl', 'rb+') as obj:
-        params = pkl.load(obj)
+    
 
     cnt = 0
     for data, labels in data_loader:

@@ -58,7 +58,7 @@ def backward(outputs, labels, cache, params):
     
     return gradient
         
-def update(params, gradient, learning_rate, m):
+def step(params, gradient, learning_rate, m):
     length = len(params) // 2
 
     for l in range(1, length + 1):
