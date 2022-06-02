@@ -9,48 +9,42 @@ import torch.nn.functional as F
 
 import pickle as pkl
 
-def initialize_params(layers, batch):
+def initialize_params(layers):
     # initialize parameters
     _size_of_layers = len(layers) - 1
     params = {}
 
     for l in range(1, _size_of_layers+1):
-        params['W' + str(l)] = torch.randn(batch, layers[l], layers[l-1]) * np.sqrt(1. / layers[l])
-        params['b' + str(l)] = torch.randn(batch, layers[l]) * np.sqrt(1. / layers[l])
+        params['W' + str(l)] = torch.tensor(np.random.randn(layers[l], layers[l-1]) * np.sqrt(1. / layers[l])).to(dtype=torch.float32)
+        params['b' + str(l)] = torch.tensor(np.random.randn(layers[l]) * np.sqrt(1. / layers[l])).to(dtype=torch.float32)
 
     return params
 
 def criterion(outputs, labels):
     '''
-    # MSELoss
-    loss = torch.mean((outputs - labels) ** 2) / 2
+    # Cross Entropy Loss Function
+    mse : torch.mean((outputs - labels) ** 2) / 2
+    cross_entropy : F.cross_entropy(outputs, labels)
     '''
     # cross Entropy loss
-    labels = torch.argmax(labels, dim=1)
-    loss = F.cross_entropy(outputs, labels)
+    log_softmax = torch.log(outputs)
+    loss = (labels * (-log_softmax)).sum(dim=0).mean()
     return loss
 
 def train(args):
     print("\n[train mode]")
     dataset = load_dataset()
 
-    batch = 1
-    data_loader = DataLoader(
-        dataset=dataset,
-        batch_size=batch,
-        shuffle=True,
-    )
-
-    epochs = 50
-    lr = 0.01
+    epochs = 300
+    lr = 0.5
     
     layers = [dataset.size(1), 3, 2]
-    params = initialize_params(layers, batch)
+    params = initialize_params(layers)
 
     for epoch in range(epochs):
-        losses = 0.
+        losses, count = 0., 0
         _params = params.copy()
-        for data, labels in data_loader:
+        for data, labels in dataset:
             data = data.to(dtype=torch.float32)
             labels = labels.to(dtype=torch.float32)
 
@@ -59,10 +53,11 @@ def train(args):
             losses += loss.item()
 
             gradient = backward(outputs, labels, cache, params)
-            _params = step(_params, gradient, lr, data.size(0))
+            _params = step(_params, gradient, lr, dataset.size(0))
+            count += 1
         params = _params    # update parameters
 
-        print(f"{epoch} epoch mean loss : {losses / len(data_loader):.3f}")
+        print(f"{epoch + 1} epoch mean loss : {losses / count:.3f}")
     pkl.dump(params, open('parameters.pkl', 'wb+'))
     pkl.dump(dataset, open('dataset.pkl', 'wb+'))
 
@@ -79,44 +74,54 @@ def test(args):
         dataset = pkl.load(obj)
         dataset(args.mode)
     
-    
-    batch = 1
-    data_loader = DataLoader(
-        dataset=dataset,
-        batch_size=batch,
-        shuffle=False,
-    )
-
-    
-
     cnt = 0
-    for data, labels in data_loader:
+    for data, labels in dataset:
         data = data.to(dtype=torch.float32)
         labels = labels.to(dtype=torch.float32)
 
         outputs, _ = forward(data, params)
         
-        predicted = torch.argmax(outputs, dim=1).item()
-        labels = torch.argmax(labels, dim=1).item()
+        predicted = torch.argmax(outputs, dim=0).item()
+        labels = torch.argmax(labels, dim=0).item()
         if predicted == labels:
             cnt += 1
         print(f"predicted : {predicted},\tactual : {labels}")
 
-    print(f"accuracy : {(cnt / len(data_loader)) * 100.:.3f}%")
+    print(f"accuracy : {(cnt / dataset.size(0)) * 100.:.3f}%")
 
     # visualized image
-    iterator = iter(data_loader)
-    inputs, labels = next(iterator)
+    inputs_list, labels_list, titles = [], [], []
+    for data, labels in dataset:
+        data = data.to(dtype=torch.float32)
+        labels = labels.to(dtype=torch.float32)
+        
+        outputs, _ = forward(data, params)
+        predicted = torch.argmax(outputs, dim=0).item()
+        labels = torch.argmax(labels, dim=0).item()    
+        
+        inputs_list.append(data.view(-1, 4, 3))
+        labels_list.append(labels)
+        titles.append(f"{predicted} / {labels}")
     
-    outputs, _ = forward(data, params)
+    test_list = list(zip(inputs_list, titles))
+    random.shuffle(test_list)
+    
+    img_cnt = 5
+    fig, ax = plt.subplots(1, img_cnt)
+    for idx ,(data, title) in enumerate(test_list):
+        if idx >= img_cnt:
+            break
+        img = data.numpy().transpose((1, 2, 0))
+        ax[idx].imshow(img, cmap=matplotlib.colors.ListedColormap(['white', 'black']))
+        ax[idx].set_title(title)
+        ax[idx].set_xticks([])
+        ax[idx].set_yticks([])
 
-    predicted = torch.argmax(outputs, dim=1).item()
-    labels = torch.argmax(labels, dim=1).item()
-    inputs = inputs.view(-1, 4, 3)
-    visualized_image(inputs, title=f"predicted : {predicted}  actual : {labels}")
-
-
-
+    
+    fig.suptitle('test data')
+    plt.savefig('./test.png', dpi=200)
+    plt.clf()
+        
     
 
     

@@ -15,13 +15,14 @@ def forward(x, params):
         b = params['b' + str(l)]
 
         # calculate z, a
-        z = torch.matmul(W, prev_a[:, :, None]).squeeze(-1) + b    # W @ prev_a + b
-
+        # z = torch.matmul(W, prev_a[:, :, None]).squeeze(-1) + b
+        z = W @ prev_a + b
+        
         # activate function
         if l < length:
             a = sigmoid(z)
         else:
-            a = z
+            a = softmax(z)
 
         # save to cache
         cache['z' + str(l)] = z
@@ -35,8 +36,7 @@ def backward(outputs, labels, cache, params):
 
     # criterion
     # da = (outputs - labels) / labels.size(0)
-    # da = 
-    da = (softmax(outputs) - labels) / labels.size(0)
+    da = (outputs - labels) / labels.size(0)
 
     for l in range(length, 0, -1):
         # backward
@@ -44,14 +44,13 @@ def backward(outputs, labels, cache, params):
         z = cache['z' + str(l)]
         W = params['W' + str(l)]
         
-        if l >= length:
-            db = da * d_softmax(z)
-        else:
-            db = da * d_sigmoid(z)
+        db = da * d_sigmoid(z)
         
-        # dW = np.outer(db, prev_a)
-        dW = torch.einsum('bi,bj->bij', (db, prev_a))
-        da = torch.matmul(W.transpose(2, 1), db[:, :, None]).squeeze(-1)     # da = W.T @ db
+        # dW = torch.einsum('bi,bj->bij', (db, prev_a))
+        dW = np.outer(db, prev_a)
+        
+        # da = torch.matmul(W.transpose(2, 1), db[:, :, None]).squeeze(-1)
+        da = W.T @ db
         
         gradient['dW' + str(l)] = dW
         gradient['db' + str(l)] = db

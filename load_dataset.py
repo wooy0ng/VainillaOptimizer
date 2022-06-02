@@ -19,13 +19,9 @@ class load_dataset(Dataset):
         
         arrs = np.asarray(df)
         labels = np.asarray(labels_df)
-
-        random_state = 10
+        
         self.train_X, self.test_X, self.train_y, self.test_y = train_test_split(
-            arrs, 
-            labels, 
-            test_size=0.1, 
-            random_state=random_state
+            arrs, labels, test_size=0.33, random_state=45
         )
 
         if mode == 'train':

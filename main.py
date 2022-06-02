@@ -3,7 +3,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--mode', required=False, default='train')
+parser.add_argument('--mode', required=False, default='test')
 
 args = parser.parse_args()
 
