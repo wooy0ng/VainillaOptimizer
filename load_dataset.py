@@ -12,13 +12,18 @@ class load_dataset(Dataset):
     def __init__(self, mode='train'):
         super(load_dataset, self).__init__()
 
-        df = pd.read_excel('./dataset.xlsx')
-        labels_df = pd.get_dummies(df['label'])
+        df = pd.read_excel('./dataset.xlsx', sheet_name='Data')
         
-        df.drop(['label'], axis=1, inplace=True)
+        idx = 10
+        tmp_arrs, tmp_labels = [], []
+        while idx < df.shape[-1]:
+            tmp_df = df.iloc[3:7, idx:idx+3]; tmp_label = df.iloc[7, idx+3]
+            tmp_arrs.append(tmp_df.to_numpy().flatten())
+            tmp_labels.append(int(tmp_label))
+            idx += 4
         
-        arrs = np.asarray(df)
-        labels = np.asarray(labels_df)
+        arrs = np.asarray(tmp_arrs)
+        labels = np.asarray(pd.get_dummies(tmp_labels))
         
         self.train_X, self.test_X, self.train_y, self.test_y = train_test_split(
             arrs, labels, test_size=0.33, random_state=45

@@ -23,7 +23,7 @@ def initialize_params(layers):
 def criterion(outputs, labels):
     '''
     # Cross Entropy Loss Function
-    mse : torch.mean((outputs - labels) ** 2) / 2
+    mse loss : torch.mean((outputs - labels) ** 2) / 2
     cross_entropy : F.cross_entropy(outputs, labels)
     '''
     # cross Entropy loss
@@ -35,7 +35,7 @@ def train(args):
     print("\n[train mode]")
     dataset = load_dataset()
 
-    epochs = 300
+    epochs = 50
     lr = 0.5
     
     layers = [dataset.size(1), 3, 2]
@@ -118,7 +118,7 @@ def test(args):
         ax[idx].set_yticks([])
 
     
-    fig.suptitle('test data')
+    fig.suptitle('predicted / actual')
     plt.savefig('./test.png', dpi=200)
     plt.clf()
         

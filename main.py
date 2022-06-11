@@ -3,7 +3,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--mode', required=False, default='test')
+parser.add_argument('--mode', required=False, default='train')
 
 args = parser.parse_args()
 
@@ -12,3 +12,6 @@ if args.mode == 'train':
     test(args)
 elif args.mode == 'test':
     test(args)
+
+
+
